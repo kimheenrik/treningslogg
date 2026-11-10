@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Treningslogg</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trening">
+<meta name="theme-color" content="#111418">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="ikon-180.png">
+<link rel="icon" href="ikon-192.png">
+<style>
+:root {
+  --bg: #f4f5f7; --kort: #ffffff; --tekst: #15181d; --dempet: #646b76;
+  --linje: #e2e5ea; --aksent: #2563eb; --aksent-tekst: #ffffff;
+  --ok: #15803d; --fare: #b91c1c; --fail: #c2410c; --felt: #f0f2f5;
+  --serie2: #0d9488;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --kort: #1a1f26; --tekst: #e8eaed; --dempet: #9aa3ae;
+    --linje: #2b323c; --aksent: #4f8cff; --aksent-tekst: #0b0d10;
+    --ok: #4ade80; --fare: #f87171; --fail: #fb923c; --felt: #222831;
+    --serie2: #2dd4bf;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--tekst);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { padding: env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom)); }
+main { max-width: 560px; margin: 0 auto; padding: 12px 16px; }
+h1 { font-size: 22px; margin: 8px 0 12px; }
+h2 { font-size: 15px; margin: 0 0 8px; color: var(--dempet); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em; }
+.kort { background: var(--kort); border: 1px solid var(--linje); border-radius: 14px;
+  padding: 14px; margin-bottom: 12px; }
+label { display: block; font-size: 13px; color: var(--dempet); margin-bottom: 4px; }
+input, select, textarea { width: 100%; font: inherit; color: var(--tekst); background: var(--felt);
+  border: 1px solid var(--linje); border-radius: 10px; padding: 11px 12px; }
+input[type=number] { font-size: 22px; font-weight: 600; text-align: center; }
+.rad { display: flex; gap: 10px; }
+.rad > * { flex: 1; min-width: 0; }
+button { font: inherit; border: 0; border-radius: 12px; padding: 13px 16px; cursor: pointer;
+  background: var(--felt); color: var(--tekst); }
+button.hoved { background: var(--aksent); color: var(--aksent-tekst); font-weight: 650; width: 100%; font-size: 18px; }
+button.liten { padding: 6px 10px; font-size: 14px; border-radius: 8px; }
+button:disabled { opacity: .5; }
+.steg { display: flex; align-items: stretch; gap: 6px; }
+.steg button { padding: 0 14px; font-size: 22px; font-weight: 600; }
+.brytere { display: flex; gap: 8px; margin: 12px 0; }
+.bryter { flex: 1; text-align: center; padding: 10px; border-radius: 10px; background: var(--felt);
+  border: 1px solid var(--linje); font-size: 15px; user-select: none; }
+.bryter.pa { border-color: var(--fail); color: var(--fail); font-weight: 600; }
+.bryter.pa.oppv { border-color: var(--dempet); color: var(--tekst); }
+.forrige { font-size: 14px; color: var(--dempet); margin-top: 8px; }
+.forrige b { color: var(--tekst); font-weight: 600; }
+.sett-liste { list-style: none; padding: 0; margin: 0; }
+.sett-liste li { display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  border-top: 1px solid var(--linje); font-variant-numeric: tabular-nums; }
+.sett-liste li:first-child { border-top: 0; }
+.sett-liste .nr { color: var(--dempet); width: 22px; }
+.sett-liste .verdi { flex: 1; font-weight: 600; }
+.merke { font-size: 12px; padding: 2px 7px; border-radius: 99px; background: var(--felt); color: var(--dempet); }
+.merke.f { color: var(--fail); }
+.slett { background: none; color: var(--dempet); padding: 4px 8px; font-size: 18px; }
+.ovelse-tittel { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0; }
+.ovelse-tittel strong { font-size: 16px; }
+.dempet { color: var(--dempet); font-size: 14px; }
+nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--kort);
+  border-top: 1px solid var(--linje); padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+nav button { flex: 1; background: none; border-radius: 0; padding: 14px 0; color: var(--dempet); font-weight: 600; }
+nav button.aktiv { color: var(--aksent); }
+.skjult { display: none !important; }
+.melding { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom));
+  background: var(--tekst); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 15px;
+  z-index: 10; max-width: calc(100% - 32px); }
+.tall-rutenett { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tall-rutenett div { background: var(--felt); border-radius: 10px; padding: 10px; }
+.tall-rutenett b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.tall-rutenett span { font-size: 12px; color: var(--dempet); }
+.ovelse-kort { cursor: pointer; }
+.ovelse-kort .topp { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ovelse-kort .rm { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.endring { font-size: 13px; font-weight: 600; }
+.endring.opp { color: var(--ok); } .endring.ned { color: var(--fare); }
+svg text { fill: var(--dempet); font-size: 18px; }
+.detalj-tabell { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.detalj-tabell td, .detalj-tabell th { padding: 6px 4px; border-top: 1px solid var(--linje); text-align: left; }
+.detalj-tabell th { color: var(--dempet); font-weight: 600; border-top: 0; }
+.topplinje { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.topplinje input { width: auto; max-width: 150px; padding: 7px 10px; font-size: 15px; }
+.ko { font-size: 13px; color: var(--fail); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Innlogging -->
+<main id="innlogging" class="skjult">
+  <h1>Treningslogg</h1>
+  <div class="kort">
+    <label for="epost">E-post</label>
+    <input id="epost" type="email" autocomplete="username">
+    <div style="height:10px"></div>
+    <label for="passord">Passord</label>
+    <input id="passord" type="password" autocomplete="current-password">
+    <div style="height:14px"></div>
+    <button class="hoved" id="logg-inn">Logg inn</button>
+    <div style="height:10px"></div>
+    <button class="liten" id="ny-konto">Første gang? Opprett konto</button>
+    <p class="dempet" id="inn-melding"></p>
+  </div>
+</main>
+
+<!-- Logg -->
+<main id="side-logg" class="skjult">
+  <div class="topplinje">
+    <h1 id="logg-tittel">Dagens økt</h1>
+    <input id="dato" type="date" aria-label="Dato">
+  </div>
+  <div class="kort">
+    <label for="ovelse">Øvelse</label>
+    <select id="ovelse"></select>
+    <input id="ny-ovelse" class="skjult" placeholder="Navn på ny øvelse" style="margin-top:8px">
+    <div class="forrige" id="forrige"></div>
+
+    <div style="height:14px"></div>
+    <div class="rad">
+      <div>
+        <label for="vekt">Vekt (kg)</label>
+        <div class="steg">
+          <button data-steg="vekt" data-d="-2.5">−</button>
+          <input id="vekt" type="number" inputmode="decimal" step="0.5" min="0">
+          <button data-steg="vekt" data-d="2.5">+</button>
+        </div>
+      </div>
+      <div>
+        <label for="reps">Reps</label>
+        <div class="steg">
+          <button data-steg="reps" data-d="-1">−</button>
+          <input id="reps" type="number" inputmode="numeric" step="1" min="0">
+          <button data-steg="reps" data-d="1">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="brytere">
+      <div class="bryter" id="b-failure" role="button">Failure</div>
+      <div class="bryter oppv" id="b-oppv" role="button">Oppvarming</div>
+    </div>
+    <input id="notat" placeholder="Notat (valgfritt)">
+    <div style="height:12px"></div>
+    <button class="hoved" id="lagre">Lagre sett</button>
+    <div class="ko skjult" id="ko"></div>
+  </div>
+
+  <div id="okta"></div>
+</main>
+
+<!-- Analyse -->
+<main id="side-analyse" class="skjult">
+  <h1>Analyse</h1>
+  <div class="kort">
+    <h2>Denne uka</h2>
+    <div class="tall-rutenett" id="uke-tall"></div>
+  </div>
+  <div class="kort">
+    <h2>Økter per uke</h2>
+    <div id="uke-graf"></div>
+    <p class="dempet" style="margin:6px 0 0">Stolpe: styrkeøkter (mål 3). Linje: løpeøkter fra Garmin.</p>
+  </div>
+  <div id="detalj" class="skjult"></div>
+  <h2 style="margin:16px 0 8px">Estimert max (1RM)</h2>
+  <p class="dempet" style="margin-top:0">Beste sett per økt, Epley: vekt × (1 + reps/30). Oppvarming telles ikke.
+  Maskin- og kabeltall er bare sammenlignbare med seg selv.</p>
+  <div id="ovelser"></div>
+</main>
+
+<nav id="meny" class="skjult">
+  <button data-side="logg" class="aktiv">Logg</button>
+  <button data-side="analyse">Analyse</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = "https://cpwzeoyctimvxpgizhoj.supabase.co";
+const SUPABASE_NOKKEL = "sb_publishable_0t4TAHFfCWiBfbck1gmc-Q_MIUBV8y5";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_NOKKEL);
+const $ = id => document.getElementById(id);
+const KO_NOKKEL = "trening-ko";
+
+let alleSett = [];        // all historikk, nyeste først
+let valgtFailure = false, valgtOppv = false;
+
+// ---------- hjelpere ----------
+const iDag = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Oslo" });
+const epley = (v, r) => v * (1 + r / 30);
+const kg = v => (Math.round(v * 10) / 10).toLocaleString("nb-NO");
+const settTekst = s => `${kg(s.vekt_kg)} × ${s.reps ?? "?"}`;
+const datoKort = d => { const [, m, dd] = d.split("-"); return `${+dd}.${+m}`; };
+const ukeStart = d => { const x = new Date(d + "T12:00:00"); const dag = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - dag); return x.toLocaleDateString("sv-SE"); };
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function melding(t, ms = 2200) {
+  const el = document.createElement("div"); el.className = "melding"; el.textContent = t;
+  document.body.appendChild(el); setTimeout(() => el.remove(), ms);
+}
+function lesKo() { try { return JSON.parse(localStorage.getItem(KO_NOKKEL) || "[]"); } catch { return []; } }
+function skrivKo(k) { try { localStorage.setItem(KO_NOKKEL, JSON.stringify(k)); } catch {} }
+
+// ---------- innlogging ----------
+async function start() {
+  const { data } = await db.auth.getSession();
+  if (data.session) await visApp(); else visInnlogging();
+}
+function visInnlogging() {
+  $("innlogging").classList.remove("skjult");
+  ["side-logg", "side-analyse", "meny"].forEach(i => $(i).classList.add("skjult"));
+}
+$("logg-inn").onclick = async () => {
+  $("inn-melding").textContent = "Logger inn …";
+  const { error } = await db.auth.signInWithPassword({ email: $("epost").value.trim(), password: $("passord").value });
+  if (error) { $("inn-melding").textContent = "Feil: " + error.message; return; }
+  $("inn-melding").textContent = "";
+  await visApp();
+};
+$("ny-konto").onclick = async () => {
+  if ($("passord").value.length < 8) { $("inn-melding").textContent = "Velg et passord på minst 8 tegn først."; return; }
+  const { error } = await db.auth.signUp({ email: $("epost").value.trim(), password: $("passord").value,
+    options: { emailRedirectTo: location.href.split("#")[0] } });
+  $("inn-melding").textContent = error ? "Feil: " + error.message
+    : "Sjekk e-posten og trykk på bekreftelseslenken. Kom så tilbake hit og logg inn.";
+};
+
+async function visApp() {
+  $("innlogging").classList.add("skjult");
+  $("meny").classList.remove("skjult");
+  visSide("logg");
+  await hentAlt();
+  await tomKo();
+}
+
+// ---------- data ----------
+async function hentAlt() {
+  const sider = [];
+  for (let fra = 0; ; fra += 1000) {
+    const { data, error } = await db.from("styrke_sett").select("*")
+      .order("dato", { ascending: false }).order("ovelse").order("sett_nr").range(fra, fra + 999);
+    if (error) {
+      if (/JWT|auth|ikke tilgang/i.test(error.message)) { await db.auth.signOut(); visInnlogging(); }
+      melding("Kunne ikke hente data: " + error.message, 4000); return;
+    }
+    sider.push(...data);
+    if (data.length < 1000) break;
+  }
+  alleSett = sider;
+  fyllOvelser();
+  tegnLogg();
+}
+
+function ovelsesListe() {
+  // Sist brukt først
+  const sist = new Map();
+  for (const s of alleSett) if (!sist.has(s.ovelse)) sist.set(s.ovelse, s.dato);
+  for (const s of lesKo()) if (!sist.has(s.ovelse)) sist.set(s.ovelse, s.dato);
+  return [...sist.entries()].sort((a, b) => b[1].localeCompare(a[1]) || a[0].localeCompare(b[0])).map(e => e[0]);
+}
+function fyllOvelser() {
+  const sel = $("ovelse"), valgt = sel.value;
+  sel.innerHTML = ovelsesListe().map(o => `<option>${esc(o)}</option>`).join("") +
+    `<option value="__ny">+ Ny øvelse …</option>`;
+  if (valgt && [...sel.options].some(o => o.value === valgt)) sel.value = valgt;
+  oppdaterOvelse();
+}
+
+// ---------- logg-side ----------
+$("dato").value = iDag();
+$("dato").onchange = () => { oppdaterOvelse(); tegnLogg(); };
+$("ovelse").onchange = () => oppdaterOvelse();
+$("b-failure").onclick = () => { valgtFailure = !valgtFailure; $("b-failure").classList.toggle("pa", valgtFailure); };
+$("b-oppv").onclick = () => { valgtOppv = !valgtOppv; $("b-oppv").classList.toggle("pa", valgtOppv); };
+document.querySelectorAll("[data-steg]").forEach(b => b.onclick = () => {
+  const f = $(b.dataset.steg), d = +b.dataset.d;
+  f.value = Math.max(0, (+f.value || 0) + d);
+});
+
+const valgtOvelse = () => $("ovelse").value === "__ny" ? $("ny-ovelse").value.trim() : $("ovelse").value;
+const settFor = (ovelse, dato) => [...alleSett, ...lesKo()].filter(s => s.ovelse === ovelse && s.dato === dato)
+  .sort((a, b) => a.sett_nr - b.sett_nr);
+
+function oppdaterOvelse() {
+  const ny = $("ovelse").value === "__ny";
+  $("ny-ovelse").classList.toggle("skjult", !ny);
+  const o = valgtOvelse(), dato = $("dato").value;
+  if (!o) { $("forrige").textContent = ""; return; }
+  const tidligere = alleSett.filter(s => s.ovelse === o && s.dato < dato);
+  const forrigeDato = tidligere[0]?.dato;
+  const idag = settFor(o, dato);
+  if (forrigeDato) {
+    const sett = tidligere.filter(s => s.dato === forrigeDato).sort((a, b) => a.sett_nr - b.sett_nr);
+    const arbeid = sett.filter(s => !s.oppvarming);
+    $("forrige").innerHTML = `Forrige gang ${datoKort(forrigeDato)}: <b>${arbeid.map(s => settTekst(s) + (s.failure ? "F" : "")).join(" · ") || "–"}</b>`;
+    if (!idag.length) {
+      const forst = arbeid[0] || sett[0];
+      $("vekt").value = forst.vekt_kg; $("reps").value = forst.reps ?? "";
+    }
+  } else {
+    $("forrige").textContent = ny ? "" : "Ingen tidligere økter på denne øvelsen.";
+  }
+  if (idag.length) { const s = idag[idag.length - 1]; $("vekt").value = s.vekt_kg; $("reps").value = s.reps ?? ""; }
+}
+
+$("lagre").onclick = async () => {
+  const ovelse = valgtOvelse(), dato = $("dato").value;
+  const vekt = parseFloat(String($("vekt").value).replace(",", "."));
+  const reps = $("reps").value === "" ? null : parseInt($("reps").value, 10);
+  if (!ovelse) return melding("Velg eller skriv inn en øvelse.");
+  if (!(vekt >= 0)) return melding("Skriv inn vekt.");
+  if (reps === null) return melding("Skriv inn reps.");
+  const rad = { dato, ovelse, sett_nr: settFor(ovelse, dato).length + 1, vekt_kg: vekt, reps,
+    failure: valgtFailure, oppvarming: valgtOppv, notat: $("notat").value.trim() || null };
+  $("lagre").disabled = true;
+  const { data, error } = await db.from("styrke_sett").insert(rad).select().single();
+  $("lagre").disabled = false;
+  if (error) {
+    skrivKo([...lesKo(), rad]);
+    melding("Ingen kontakt – settet er lagret på telefonen og sendes senere.", 3500);
+  } else {
+    alleSett.unshift(data);
+    melding(`Lagret: ${settTekst(data)}`);
+  }
+  valgtFailure = valgtOppv = false;
+  $("b-failure").classList.remove("pa"); $("b-oppv").classList.remove("pa");
+  $("notat").value = "";
+  if ($("ovelse").value === "__ny") { fyllOvelser(); $("ovelse").value = ovelse; $("ny-ovelse").value = ""; }
+  oppdaterOvelse(); tegnLogg();
+};
+
+async function tomKo() {
+  const ko = lesKo();
+  if (!ko.length) { $("ko").classList.add("skjult"); return; }
+  const igjen = [];
+  for (const rad of ko) {
+    const { data, error } = await db.from("styrke_sett").insert(rad).select().single();
+    if (error) igjen.push(rad); else alleSett.unshift(data);
+  }
+  skrivKo(igjen);
+  $("ko").classList.toggle("skjult", !igjen.length);
+  $("ko").textContent = igjen.length ? `${igjen.length} sett venter på å bli sendt.` : "";
+  if (ko.length !== igjen.length) { melding(`${ko.length - igjen.length} ventende sett sendt.`); tegnLogg(); }
+}
+window.addEventListener("online", tomKo);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && lesKo().length) tomKo(); });
+
+function tegnLogg() {
+  const dato = $("dato").value;
+  $("logg-tittel").textContent = dato === iDag() ? "Dagens økt" : `Økt ${datoKort(dato)}`;
+  const dagens = [...alleSett, ...lesKo().map(s => ({ ...s, venter: true }))].filter(s => s.dato === dato);
+  const per = new Map();
+  for (const s of dagens.sort((a, b) => (a.id ?? 1e12) - (b.id ?? 1e12))) {
+    if (!per.has(s.ovelse)) per.set(s.ovelse, []);
+    per.get(s.ovelse).push(s);
+  }
+  if (!per.size) { $("okta").innerHTML = `<p class="dempet" style="text-align:center">Ingen sett logget ${dato === iDag() ? "i dag" : "denne dagen"} ennå.</p>`; return; }
+  $("okta").innerHTML = [...per.entries()].map(([o, sett]) => `
+    <div class="kort">
+      <div class="ovelse-tittel"><strong>${esc(o)}</strong>
+        <span class="dempet">${sett.filter(s => !s.oppvarming).length} arbeidssett</span></div>
+      <ul class="sett-liste">${sett.sort((a, b) => a.sett_nr - b.sett_nr).map(s => `
+        <li><span class="nr">${s.sett_nr}</span>
+          <span class="verdi">${settTekst(s)}</span>
+          ${s.oppvarming ? '<span class="merke">oppv.</span>' : ""}
+          ${s.failure ? '<span class="merke f">failure</span>' : ""}
+          ${s.venter ? '<span class="merke">venter</span>' : ""}
+          ${s.notat ? `<span class="dempet" title="${esc(s.notat)}">✎</span>` : ""}
+          ${s.id ? `<button class="slett" data-slett="${s.id}" aria-label="Slett">✕</button>` : ""}
+        </li>`).join("")}</ul>
+    </div>`).join("");
+  document.querySelectorAll("[data-slett]").forEach(b => b.onclick = async () => {
+    const s = alleSett.find(x => x.id === +b.dataset.slett);
+    if (!confirm(`Slette ${s.ovelse} ${settTekst(s)}?`)) return;
+    const { error } = await db.from("styrke_sett").delete().eq("id", s.id);
+    if (error) return melding("Kunne ikke slette: " + error.message, 3500);
+    alleSett = alleSett.filter(x => x.id !== s.id);
+    oppdaterOvelse(); tegnLogg();
+  });
+}
+
+// ---------- analyse ----------
+function okterPerOvelse() {
+  // { ovelse: [{dato, rm, beste, sett}] } eldste først
+  const m = new Map();
+  for (const s of alleSett) {
+    if (s.oppvarming || !s.reps) continue;
+    if (!m.has(s.ovelse)) m.set(s.ovelse, new Map());
+    const dager = m.get(s.ovelse);
+    const rm = epley(+s.vekt_kg, s.reps);
+    const d = dager.get(s.dato);
+    if (!d || rm > d.rm) dager.set(s.dato, { dato: s.dato, rm, beste: s });
+  }
+  const ut = new Map();
+  for (const [o, dager] of m) ut.set(o, [...dager.values()].sort((a, b) => a.dato.localeCompare(b.dato)));
+  return ut;
+}
+
+function sparkline(punkter, b = 120, h = 34) {
+  if (punkter.length < 2) return "";
+  const v = punkter.map(p => p.rm), min = Math.min(...v), max = Math.max(...v), sp = max - min || 1;
+  const xy = v.map((y, i) => [i / (v.length - 1) * (b - 4) + 2, h - 3 - (y - min) / sp * (h - 6)]);
+  const sist = xy[xy.length - 1];
+  return `<svg width="${b}" height="${h}" viewBox="0 0 ${b} ${h}" aria-hidden="true">
+    <polyline fill="none" stroke="var(--aksent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+      points="${xy.map(p => p.join(",")).join(" ")}"/>
+    <circle cx="${sist[0]}" cy="${sist[1]}" r="3" fill="var(--aksent)"/></svg>`;
+}
+
+function linjegraf(punkter) {
+  const B = 520, H = 200, v = { l: 36, r: 28, t: 10, b: 24 };
+  const ys = punkter.map(p => p.rm), min = Math.floor(Math.min(...ys) * 0.97), max = Math.ceil(Math.max(...ys) * 1.02);
+  const t0 = new Date(punkter[0].dato).getTime(), t1 = new Date(punkter[punkter.length - 1].dato).getTime() || t0 + 1;
+  const X = d => v.l + ((new Date(d).getTime() - t0) / ((t1 - t0) || 1)) * (B - v.l - v.r);
+  const Y = y => v.t + (1 - (y - min) / ((max - min) || 1)) * (H - v.t - v.b);
+  const steg = Math.max(1, Math.round((max - min) / 4));
+  let rutenett = "";
+  for (let y = min; y <= max; y += steg)
+    rutenett += `<line x1="${v.l}" x2="${B - v.r}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--linje)"/>
+      <text x="${v.l - 6}" y="${Y(y) + 4}" text-anchor="end">${y}</text>`;
+  const etiketter = punkter.filter((_, i) => i === 0 || i === punkter.length - 1 || i % Math.ceil(punkter.length / 5) === 0)
+    .map(p => `<text x="${X(p.dato)}" y="${H - 6}" text-anchor="middle">${datoKort(p.dato)}</text>`).join("");
+  return `<svg viewBox="0 0 ${B} ${H}" width="100%" role="img" aria-label="Estimert 1RM over tid">
+    ${rutenett}${etiketter}
+    <polyline fill="none" stroke="var(--aksent)" stroke-width="2.5" stroke-linejoin="round"
+      points="${punkter.map(p => `${X(p.dato)},${Y(p.rm)}`).join(" ")}"/>
+    ${punkter.map(p => `<circle cx="${X(p.dato)}" cy="${Y(p.rm)}" r="${p.beste.failure ? 4 : 3}"
+      fill="${p.beste.failure ? "var(--fail)" : "var(--kort)"}" stroke="var(--aksent)" stroke-width="2"><title>${datoKort(p.dato)}: ${settTekst(p.beste)} → ${kg(p.rm)} kg</title></circle>`).join("")}
+  </svg>`;
+}
+
+function stolpegraf(uker) {
+  const B = 520, H = 170, v = { l: 24, r: 8, t: 10, b: 22 };
+  const maks = Math.max(4, ...uker.map(u => Math.max(u.styrkeokter, u.lopeokter)));
+  const bredde = (B - v.l - v.r) / uker.length;
+  const Y = y => v.t + (1 - y / maks) * (H - v.t - v.b);
+  let s = "";
+  for (let y = 0; y <= maks; y++) s += `<line x1="${v.l}" x2="${B - v.r}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--linje)"/>
+    <text x="${v.l - 6}" y="${Y(y) + 4}" text-anchor="end">${y}</text>`;
+  s += `<line x1="${v.l}" x2="${B - v.r}" y1="${Y(3)}" y2="${Y(3)}" stroke="var(--ok)" stroke-dasharray="4 4"/>`;
+  uker.forEach((u, i) => {
+    const x = v.l + i * bredde;
+    s += `<rect x="${x + bredde * 0.18}" y="${Y(u.styrkeokter)}" width="${bredde * 0.64}" height="${Y(0) - Y(u.styrkeokter)}"
+      rx="3" fill="var(--aksent)"><title>Uke fra ${datoKort(u.uke)}: ${u.styrkeokter} styrke, ${u.lopeokter} løp (${kg(u.lope_km)} km)</title></rect>`;
+    if (i % 2 === uker.length % 2 || i === uker.length - 1)
+      s += `<text x="${x + bredde / 2}" y="${H - 6}" text-anchor="middle">${datoKort(u.uke)}</text>`;
+  });
+  s += `<polyline fill="none" stroke="var(--serie2)" stroke-width="2" points="${uker.map((u, i) => `${v.l + (i + 0.5) * bredde},${Y(u.lopeokter)}`).join(" ")}"/>`;
+  s += uker.map((u, i) => `<circle cx="${v.l + (i + 0.5) * bredde}" cy="${Y(u.lopeokter)}" r="3" fill="var(--serie2)"/>`).join("");
+  return `<svg viewBox="0 0 ${B} ${H}" width="100%" role="img" aria-label="Økter per uke">${s}</svg>`;
+}
+
+async function tegnAnalyse() {
+  // Uker
+  const { data: uker, error } = await db.rpc("ukeoversikt");
+  const denne = ukeStart(iDag());
+  const lokaleDager = new Set(alleSett.filter(s => ukeStart(s.dato) === denne).map(s => s.dato));
+  if (error) {
+    $("uke-graf").innerHTML = `<p class="dempet">Kunne ikke hente ukeoversikt: ${esc(error.message)}</p>`;
+  } else {
+    $("uke-graf").innerHTML = stolpegraf(uker.slice(-12));
+  }
+  const u = uker?.find(x => x.uke === denne) || { lopeokter: 0, lope_km: 0 };
+  const settUke = alleSett.filter(s => ukeStart(s.dato) === denne && !s.oppvarming).length;
+  $("uke-tall").innerHTML = `
+    <div><b>${lokaleDager.size}<span style="font-size:14px;color:var(--dempet)"> / 3</span></b><span>styrkeøkter</span></div>
+    <div><b>${settUke}</b><span>arbeidssett</span></div>
+    <div><b>${u.lopeokter}</b><span>løpeøkter · ${kg(u.lope_km)} km</span></div>`;
+
+  // Øvelser
+  const per = okterPerOvelse();
+  const fireUker = new Date(Date.now() - 28 * 864e5).toLocaleDateString("sv-SE");
+  const kort = [...per.entries()].map(([o, p]) => {
+    const sist = p[p.length - 1], best = p.reduce((a, b) => b.rm > a.rm ? b : a);
+    const forr = [...p].reverse().find(x => x.dato <= fireUker);
+    return { o, p, sist, best, endring: forr ? sist.rm - forr.rm : null };
+  }).sort((a, b) => b.sist.dato.localeCompare(a.sist.dato) || b.p.length - a.p.length);
+  $("ovelser").innerHTML = kort.map(k => `
+    <div class="kort ovelse-kort" data-ovelse="${esc(k.o)}">
+      <div class="topp"><strong>${esc(k.o)}</strong><span class="rm">${kg(k.sist.rm)} kg</span></div>
+      <div class="topp" style="align-items:center;margin-top:4px">
+        <span class="dempet">Sist ${datoKort(k.sist.dato)}: ${settTekst(k.sist.beste)}${k.sist.beste.failure ? " F" : ""}
+          · beste ${kg(k.best.rm)} (${datoKort(k.best.dato)})<br>
+          ${k.endring === null ? `${k.p.length} økter` :
+            `<span class="endring ${k.endring > 0.5 ? "opp" : k.endring < -0.5 ? "ned" : ""}">${k.endring > 0 ? "+" : ""}${kg(k.endring)} kg</span> siste 4 uker`}</span>
+        ${sparkline(k.p)}
+      </div>
+    </div>`).join("") || `<p class="dempet">Ingen data ennå.</p>`;
+  document.querySelectorAll(".ovelse-kort").forEach(el => el.onclick = () => visDetalj(el.dataset.ovelse, per));
+}
+
+function visDetalj(o, per) {
+  const p = per.get(o), el = $("detalj");
+  el.classList.remove("skjult");
+  el.innerHTML = `<div class="kort">
+    <div class="ovelse-tittel"><strong>${esc(o)}</strong><button class="liten" id="lukk">Lukk</button></div>
+    ${p.length > 1 ? linjegraf(p) : '<p class="dempet">Trenger minst to økter for graf.</p>'}
+    <p class="dempet" style="margin:4px 0 8px">Fylt prikk = beste sett gikk til failure (sikrest estimat).</p>
+    <table class="detalj-tabell"><tr><th>Dato</th><th>Arbeidssett</th><th>Est.</th></tr>
+    ${[...p].reverse().map(x => `<tr><td>${datoKort(x.dato)}</td><td>${alleSett.filter(s => s.ovelse === o && s.dato === x.dato && !s.oppvarming)
+      .sort((a, b) => a.sett_nr - b.sett_nr).map(s => settTekst(s) + (s.failure ? "F" : "")).join(" · ")}</td><td>${kg(x.rm)}</td></tr>`).join("")}
+    </table></div>`;
+  $("lukk").onclick = () => el.classList.add("skjult");
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ---------- navigasjon ----------
+function visSide(side) {
+  $("side-logg").classList.toggle("skjult", side !== "logg");
+  $("side-analyse").classList.toggle("skjult", side !== "analyse");
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("aktiv", b.dataset.side === side));
+  if (side === "analyse") tegnAnalyse();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => visSide(b.dataset.side));
+db.auth.onAuthStateChange((hendelse) => { if (hendelse === "SIGNED_OUT") visInnlogging(); });
+
+start();
+</script>
+</body>
+</html>
