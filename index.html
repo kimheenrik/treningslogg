@@ -94,6 +94,7 @@ button:disabled { opacity: .5; }
   border: 1px solid var(--linje); }
 .merke.f { background: var(--rosa); border-color: var(--rosa); color: var(--hvit); }
 .slett { background: none; border: 0; color: var(--dempet); padding: 4px 8px; font-size: 18px; }
+.slett.bekreft { background: var(--rosa); color: var(--hvit); font-size: 13px; font-weight: 600; padding: 6px 12px; }
 .ovelse-tittel { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 0 6px; }
 .ovelse-tittel strong { font-size: 17px; font-weight: 600; }
 .dempet { color: var(--dempet); font-size: 14px; }
@@ -349,7 +350,7 @@ $("lagre").onclick = async () => {
   if (!ovelse) return melding("Velg eller skriv inn en øvelse.");
   if (!(vekt >= 0)) return melding("Skriv inn vekt.");
   if (reps === null) return melding("Skriv inn reps.");
-  const rad = { dato, ovelse, sett_nr: settFor(ovelse, dato).length + 1, vekt_kg: vekt, reps,
+  const rad = { dato, ovelse, sett_nr: Math.max(0, ...settFor(ovelse, dato).map(s => s.sett_nr)) + 1, vekt_kg: vekt, reps,
     failure: valgtFailure, oppvarming: valgtOppv, notat: $("notat").value.trim() || null };
   $("lagre").disabled = true;
   const { data, error } = await db.from("styrke_sett").insert(rad).select().single();
@@ -398,8 +399,8 @@ function tegnLogg() {
     <div class="kort">
       <div class="ovelse-tittel"><strong>${esc(o)}</strong>
         <span class="dempet">${sett.filter(s => !s.oppvarming).length} arbeidssett</span></div>
-      <ul class="sett-liste">${sett.sort((a, b) => a.sett_nr - b.sett_nr).map(s => `
-        <li><span class="nr">${s.sett_nr}</span>
+      <ul class="sett-liste">${sett.sort((a, b) => a.sett_nr - b.sett_nr).map((s, i) => `
+        <li><span class="nr">${i + 1}</span>
           <span class="verdi">${settTekst(s)}</span>
           ${s.oppvarming ? '<span class="merke">oppv.</span>' : ""}
           ${s.failure ? '<span class="merke f">failure</span>' : ""}
@@ -408,12 +409,19 @@ function tegnLogg() {
           ${s.id ? `<button class="slett" data-slett="${s.id}" aria-label="Slett">✕</button>` : ""}
         </li>`).join("")}</ul>
     </div>`).join("");
+  // Første trykk gjør ✕ om til «Slett», andre trykk sletter. Går tilbake etter 3 sek.
   document.querySelectorAll("[data-slett]").forEach(b => b.onclick = async () => {
     const s = alleSett.find(x => x.id === +b.dataset.slett);
-    if (!confirm(`Slette ${s.ovelse} ${settTekst(s)}?`)) return;
+    if (!b.classList.contains("bekreft")) {
+      b.classList.add("bekreft"); b.textContent = "Slett";
+      setTimeout(() => { b.classList.remove("bekreft"); b.textContent = "✕"; }, 3000);
+      return;
+    }
+    b.disabled = true;
     const { error } = await db.from("styrke_sett").delete().eq("id", s.id);
-    if (error) return melding("Kunne ikke slette: " + error.message, 3500);
+    if (error) { b.disabled = false; return melding("Kunne ikke slette: " + error.message, 3500); }
     alleSett = alleSett.filter(x => x.id !== s.id);
+    melding(`Slettet ${settTekst(s)}`);
     oppdaterOvelse(); tegnLogg();
   });
 }
