@@ -94,6 +94,14 @@ button:disabled { opacity: .5; }
   border: 1px solid var(--linje); }
 .merke.f { background: var(--rosa); border-color: var(--rosa); color: var(--hvit); }
 .slett { background: none; border: 0; color: var(--dempet); padding: 4px 8px; font-size: 18px; }
+.veksle { display: flex; width: 100%; background: none; border: 0; border-radius: 0; padding: 0;
+  color: var(--tekst); text-align: left; cursor: pointer; }
+.pil { display: inline-block; margin-left: 6px; font-size: 18px; line-height: 1; transform: rotate(90deg); transition: transform .2s; }
+.ovelse-logg .sammendrag { display: none; font-size: 14px; color: var(--dempet); font-variant-numeric: tabular-nums; }
+.ovelse-logg.lukket { padding-top: 12px; padding-bottom: 12px; }
+.ovelse-logg.lukket .sett-liste { display: none; }
+.ovelse-logg.lukket .sammendrag { display: block; }
+.ovelse-logg.lukket .pil { transform: rotate(0deg); }
 .slett.bekreft { background: var(--rosa); color: var(--hvit); font-size: 13px; font-weight: 600; padding: 6px 12px; }
 .ovelse-tittel { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 0 6px; }
 .ovelse-tittel strong { font-size: 17px; font-weight: 600; }
@@ -224,6 +232,7 @@ const KO_NOKKEL = "trening-ko";
 
 let alleSett = [];        // all historikk, nyeste først
 let valgtFailure = false, valgtOppv = false;
+const apneKort = new Map();  // "dato|øvelse" → åpen/lukket, når brukeren har valgt selv
 
 // ---------- hjelpere ----------
 const iDag = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Oslo" });
@@ -309,7 +318,7 @@ function fyllOvelser() {
 // ---------- logg-side ----------
 $("dato").value = iDag();
 $("dato").onchange = () => { oppdaterOvelse(); tegnLogg(); };
-$("ovelse").onchange = () => oppdaterOvelse();
+$("ovelse").onchange = () => { oppdaterOvelse(); tegnLogg(); };
 $("b-failure").onclick = () => { valgtFailure = !valgtFailure; $("b-failure").classList.toggle("pa", valgtFailure); };
 $("b-oppv").onclick = () => { valgtOppv = !valgtOppv; $("b-oppv").classList.toggle("pa", valgtOppv); };
 document.querySelectorAll("[data-steg]").forEach(b => b.onclick = () => {
@@ -362,6 +371,7 @@ $("lagre").onclick = async () => {
     alleSett.unshift(data);
     melding(`Lagret: ${settTekst(data)}`);
   }
+  apneKort.delete(dato + "|" + ovelse);  // øvelsen du nettopp lagret i, vises åpen
   valgtFailure = valgtOppv = false;
   $("b-failure").classList.remove("pa"); $("b-oppv").classList.remove("pa");
   $("notat").value = "";
@@ -395,11 +405,24 @@ function tegnLogg() {
     per.get(s.ovelse).push(s);
   }
   if (!per.size) { $("okta").innerHTML = `<p class="dempet" style="text-align:center">Ingen sett logget ${dato === iDag() ? "i dag" : "denne dagen"} ennå.</p>`; return; }
-  $("okta").innerHTML = [...per.entries()].map(([o, sett]) => `
-    <div class="kort">
-      <div class="ovelse-tittel"><strong>${esc(o)}</strong>
-        <span class="dempet">${sett.filter(s => !s.oppvarming).length} arbeidssett</span></div>
-      <ul class="sett-liste">${sett.sort((a, b) => a.sett_nr - b.sett_nr).map((s, i) => `
+  // Sist loggede øvelse øverst. Øvelsen du logger nå er åpen, de andre er lagt sammen
+  // til én linje – med mindre du har åpnet eller lukket dem selv.
+  const sistId = sett => Math.max(...sett.map(s => s.id ?? 1e12));
+  const rekkefolge = [...per.entries()].sort((a, b) => sistId(b[1]) - sistId(a[1]));
+  const aktiv = valgtOvelse();
+  $("okta").innerHTML = rekkefolge.map(([o, sett]) => {
+    const nokkel = dato + "|" + o;
+    const apen = apneKort.has(nokkel) ? apneKort.get(nokkel) : o === aktiv;
+    sett.sort((a, b) => a.sett_nr - b.sett_nr);
+    const arbeid = sett.filter(s => !s.oppvarming);
+    return `
+    <div class="kort ovelse-logg${apen ? "" : " lukket"}">
+      <button class="ovelse-tittel veksle" data-veksle="${esc(nokkel)}" aria-expanded="${apen}">
+        <strong>${esc(o)}</strong>
+        <span class="dempet">${arbeid.length} arbeidssett <span class="pil">›</span></span>
+      </button>
+      <div class="sammendrag">${arbeid.map(s => settTekst(s) + (s.failure ? "F" : "")).join(" · ") || "Bare oppvarming"}</div>
+      <ul class="sett-liste">${sett.map((s, i) => `
         <li><span class="nr">${i + 1}</span>
           <span class="verdi">${settTekst(s)}</span>
           ${s.oppvarming ? '<span class="merke">oppv.</span>' : ""}
@@ -408,7 +431,12 @@ function tegnLogg() {
           ${s.notat ? `<span class="dempet" title="${esc(s.notat)}">✎</span>` : ""}
           ${s.id ? `<button class="slett" data-slett="${s.id}" aria-label="Slett">✕</button>` : ""}
         </li>`).join("")}</ul>
-    </div>`).join("");
+    </div>`; }).join("");
+  document.querySelectorAll("[data-veksle]").forEach(b => b.onclick = () => {
+    const kort = b.closest(".kort"), apen = kort.classList.toggle("lukket") === false;
+    apneKort.set(b.dataset.veksle, apen);
+    b.setAttribute("aria-expanded", apen);
+  });
   // Første trykk gjør ✕ om til «Slett», andre trykk sletter. Går tilbake etter 3 sek.
   document.querySelectorAll("[data-slett]").forEach(b => b.onclick = async () => {
     const s = alleSett.find(x => x.id === +b.dataset.slett);
